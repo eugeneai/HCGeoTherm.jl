@@ -1,4 +1,4 @@
-module HCGT
+module HCGTherm
 
 using CSV
 using DataFrames

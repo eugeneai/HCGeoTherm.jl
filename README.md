@@ -1,8 +1,8 @@
-# HCGT.jl
+# HCGTherm.jl package
 
 Geotherm calculation routines according to Dr. Derrek Hasterok and Dr. David Chapman
 
-[![Build Status](https://github.com/eugeneai/HCGT.jl/actions/workflows/CI.yml/badge.svg?branch=master)](https://github.com/eugeneai/HCGT.jl/actions/workflows/CI.yml?query=branch%3Amaster)
+[![Build Status](https://github.com/eugeneai/HCGTherm.jl/actions/workflows/CI.yml/badge.svg?branch=master)](https://github.com/eugeneai/HCGTherm.jl/actions/workflows/CI.yml?query=branch%3Amaster)
 
 At present it is a routines used in an application at https://gtherm.ru . Fill free improve package structure
 
@@ -13,13 +13,13 @@ Here some examples of the library usage (actually taken from tests).  Data used 
 First, install the package (it pulls a lot of other):
 
 ```julia
-Pkg.add("HCGT")
+Pkg.add("HCGTherm")
 ```
 
 Then run example
 
 ```julia
-using HCGT
+using HCGTherm
 
 q0 = 33:0.2:40                      # [mW/m^2] surface heat flow
 GP = defaultGTInit(q0, true)        # true - switch on optimization
@@ -28,7 +28,7 @@ GP = defaultGTInit(q0, true)        # true - switch on optimization
 df = userLoadCSV("data/PTdata.csv") # Place here reference to CSV data file, see format below
                                     # The package should contain demo data,
                                     # or take it from github repo at
-                                    # https://github.com/eugeneai/HCGT.jl/tree/master/test/data
+                                    # https://github.com/eugeneai/HCGTherm.jl/tree/master/test/data
 println("Initial data frame")
 println(df)
 df.T_K = df.T_C .+ 273

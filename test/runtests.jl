@@ -1,4 +1,4 @@
-using HCGT
+using HCGTherm
 using Test
 using DataFrames
 

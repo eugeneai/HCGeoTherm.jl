@@ -1,7 +1,7 @@
 name = "HCGTherm"
 uuid = "28071b0f-1505-495f-9565-3513cfd1c620"
 authors = ["Evgeny Cherkashin, Derrick Hasterok, David Chapman"]
-version = "1.0.0"
+version = "1.0.1"
 
 [deps]
 CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"

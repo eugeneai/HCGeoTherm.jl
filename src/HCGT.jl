@@ -4,7 +4,6 @@ using CSV
 using DataFrames
 using Plots
 import Plots
-using Debugger
 using Formatting
 using LaTeXStrings
 using Interpolations
@@ -114,9 +113,12 @@ function canonifyRenamedDF(pt::DataFrame)::DataFrame
 end
 
 
-function userLoadCSV(fileName :: String) :: DataFrame
+function userLoadCSV(fileName :: String, canonify::Bool = false) :: DataFrame
     pt = CSV.read(fileName, DataFrame, delim=';', decimal=',')
-    pt |> canonifyDF
+    if canonify
+        pt |> canonifyDF
+    end
+    pt
 end
 
 function userComputeGeotherm(initParameters :: GTInit,
@@ -332,7 +334,7 @@ function userPlot(answer::GTResult,
 
         ai = answer.ini
 
-        gpOpt = GTInit([q0], ai.D, ai.zbot, ai.zmax, ai.dz, ai.P, ai.H, ai.iref, false)
+        gpOpt = GTInit([q0], ai.D, ai.zbot, ai.zmax, ai.dz, ai.P, ai.H, ai.iref, false, ai.gfxDir)
 
         answero = userComputeGeotherm(gpOpt, answer.D)
 
@@ -349,7 +351,7 @@ function userPlot(answer::GTResult,
         # print(answero.GT)
         if typeof(geothermOptfig) == String
             _savefig(plt, gfxDir * "/" * geothermOptfig)
-            print("Saved " * gfxDir * "/" * geothermOptfig)
+            println("Saved " * gfxDir * "/" * geothermOptfig)
         else
             Plots.svg(plt, geothermOptfig)
         end

@@ -10,13 +10,19 @@ using LaTeXStrings
 using Interpolations
 using Optim
 
+export
+    GTInit, Geotherm, GTResult,
+    defaultGTInit, depth, pressure,  userPlot,
+    canonifyRenamedDF, userComputeGeotherm,
+    userLoadCSV,
+    empgtherms, tccomp, thermcond, kcoef,
+    empexpansivity, acoef
+
 include("EmpgTherm.jl")
 
-appRoot="/var/tmp"
-
-struct GTInit
+struct GTInit  # Structure for model task representation
     q0   :: Any
-        # StepRange{Int64, Int64} # [mW/m^2] surface heat flow
+        # StepRange{Int64, Int64}   # [mW/m^2] surface heat flow
     D    :: Float64                 # [km] thickness of upper crust
     zbot :: Vector{Int64}           # [km] base of lithospheric layers
     zmax :: Float64                 # [km] maximum depth of model
@@ -27,6 +33,7 @@ struct GTInit
     iref :: Int64                   # index to reference heat flow
                                     # for elevation computation
     opt  :: Bool                    # Wether to apply optimization for q0
+    gfxDir :: String                # Location of graphics generated.
 end
 
 struct Geotherm
@@ -46,9 +53,9 @@ struct GTResult
 end
 
 function defaultGTInit(q0 = 34:1:40,
-                       opt::Bool = false) :: GTInit
+                       opt::Bool = false, gfxDir="/var/tmp") :: GTInit
     GTInit(q0, 16, [16,23,39,300], 225,
-           0.1, 0.74, [0,0.4,0.4,0.02], 3, opt)
+           0.1, 0.74, [0,0.4,0.4,0.02], 3, opt, gfxDir)
 end
 
 function depth(p) # GPa -> km
@@ -242,20 +249,8 @@ function optimize1(f,
     x
 end
 
-function run()
-    q0 = 33:0.2:40         # [mW/m^2] surface heat flow
-    # q0 = 20:10:100         # [mW/m^2] surface heat flow
-    GP = defaultGTInit(q0, true)
-    dataf = userLoadCSV("./data/PT Ybileynaya_Gtherm.csv")
-    answer = userComputeGeotherm(GP, dataf)
-    userPlot(answer, appRoot,
-             "geotherm.svg",
-             "geotherm-chisquare.svg",
-             "geotherm-opt.svg")
-end
-
 function userPlot(answer::GTResult,
-                  appRoot::String,
+                  gfxDir::String,
                   geothermfig::Any,
                   geothermChiSquarefig::Any,
                   geothermOptfig::Any
@@ -280,7 +275,7 @@ function userPlot(answer::GTResult,
     end
 
     if typeof(geothermfig) == String
-        _savefig(plt, appRoot * "/" * geothermfig)
+        _savefig(plt, gfxDir * "/" * geothermfig)
     else
         Plots.svg(plt, geothermfig)
     end
@@ -324,7 +319,7 @@ function userPlot(answer::GTResult,
         # xlims!(0, ceil(maximum(answer.T[:])/100)*100+100)
 
         if typeof(geothermChiSquarefig) == String
-            _savefig(plt, appRoot * "/" * geothermChiSquarefig)
+            _savefig(plt, gfxDir * "/" * geothermChiSquarefig)
         else
             Plots.svg(plt, geothermChiSquarefig)
         end
@@ -353,8 +348,8 @@ function userPlot(answer::GTResult,
         foreach(plt_gt, answero.GT)
         # print(answero.GT)
         if typeof(geothermOptfig) == String
-            _savefig(plt, appRoot * "/" * geothermOptfig)
-            print("Saved " * appRoot * "/" * geothermOptfig)
+            _savefig(plt, gfxDir * "/" * geothermOptfig)
+            print("Saved " * gfxDir * "/" * geothermOptfig)
         else
             Plots.svg(plt, geothermOptfig)
         end

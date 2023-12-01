@@ -51,7 +51,7 @@ function empgtherms(q0, maxsz, dz, D, zbot, H)
             il = 1
             iu = round(Int64, D / dz)
         end
-        println(il, ":", iu, "=", H[i])
+        # println(il, ":", iu, "=", H[i])
         _A = zeros(length(il:iu))
         _A[1:end] .= H[i]
         A = vcat(A, _A)

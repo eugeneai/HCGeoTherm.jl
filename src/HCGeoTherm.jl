@@ -11,7 +11,8 @@ export
     computeGeotherm,
     empgtherms, tccomp, thermcond, kcoef,
     empexpansivity, acoef,
-    canonifyDF
+    canonifyDF,
+    chisquare, chisquareGT
 
 include("EmpgTherm.jl")
 

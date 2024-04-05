@@ -185,12 +185,17 @@ function chisquareGT(GT::Geotherm, D::DataFrame) :: Float64
     z = GT.z
     T = GT.T
     gti = myInterpolate(z,T)
-    s = 0.0 :: Float64
+    dti = linear_interpolation(T,z)
+    dT = 0.0 :: Float64
+    dP = 0.0 :: Float64
+    sigmaT = 20  # K
+    sigmaP = 0.3 # GPa
     for row in eachrow(D)
-        cT = (gti(row.D_km)-row.T_C)^2
-        s = s + cT
+        dT = dT + (gti(row.D_km)-row.T_C)^2
+        dP = dP + (pressure(dti(row.T_C)) - pressure(row.D_km))^2
     end
-    s
+    d = (dP/(sigmaP^2) + dT/(sigmaT^2)) / nrow(D)
+    sqrt(d)
 end
 
 function chisquare(result::GTResult) :: Any

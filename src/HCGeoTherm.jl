@@ -189,7 +189,9 @@ function chisquareGT(GT::Geotherm, D::DataFrame) :: Float64
     @debug "T" T=T
     @debug "z" z=z
 
-    dti = extrapolate(scale(interpolate(z, BSpline(Linear())), T), Line())
+    # dti = extrapolate(scale(interpolate(z, BSpline(Linear())), T), Line())
+
+    dti = linear_interpolation(T, z; extrapolation_bc= Linear())
 
     dT = 0.0 :: Float64
     dP = 0.0 :: Float64

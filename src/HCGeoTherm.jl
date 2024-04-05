@@ -186,7 +186,8 @@ function chisquareGT(GT::Geotherm, D::DataFrame) :: Float64
     z = GT.z
     T = GT.T
     gti = myInterpolate(z,T)
-    @debug "issorted" issorted=(issorted(T), issorted(T, rev=true))
+    @debug "T" T=T
+    @debug "z" z=z
 
     dti = linear_interpolation(T,z)
     dT = 0.0 :: Float64

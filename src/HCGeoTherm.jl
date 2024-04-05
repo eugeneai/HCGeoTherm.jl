@@ -4,6 +4,7 @@ using DataFrames
 using Optim
 using Formatting
 using Interpolations
+import Logging
 
 export
     GTInit, Geotherm, GTResult,
@@ -185,6 +186,8 @@ function chisquareGT(GT::Geotherm, D::DataFrame) :: Float64
     z = GT.z
     T = GT.T
     gti = myInterpolate(z,T)
+    # @info "issorted" issorted=(issorted(T), issorted(T, rev=true))
+    q23(T)
     dti = linear_interpolation(T,z)
     dT = 0.0 :: Float64
     dP = 0.0 :: Float64

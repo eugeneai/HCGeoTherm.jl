@@ -114,9 +114,9 @@ function computeGeotherm(initParameters :: GTInit,
                                         ini.zbot,
                                         H)
         if az>0.0
-            label = format("{.2} ({.2})", ini.q0[i], az)
+            label = format("{:.2f} ({:.2f})", ini.q0[i], az)
         else
-            label = format("{.2}", ini.q0[i])
+            label = format("{:.2f}", ini.q0[i])
         end
         push!(GTs, Geotherm(_T, z, label, ini.q0[i], az))
 

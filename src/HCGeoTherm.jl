@@ -179,8 +179,8 @@ function computeGeotherm(initParameters :: GTInit,
         gpOpt = GTInit([q0, q0-misfit, q0+misfit], ai.D, ai.zbot,
                        ai.zmax, ai.dz, ai.P, ai.H, ai.iref, Set{String}())
 
-        answero = computeGeotherm(gpOpt, answer.D)["series"]
-        answer = GTResult(ini, answero.GT, answero.GT[1], df, maximumf)
+        answero1 = computeGeotherm(gpOpt, answer.D)["series"]
+        answer = GTResult(ini, answero1.GT, answero.GT[1], df, maximumf)
         @info "Calculated misfit lines"
 
         a = Dict{String,GTResult}("misfits" => answer)

@@ -175,8 +175,9 @@ function computeGeotherm(initParameters :: GTInit,
 
     if "misfits" in ini.options
         ai = answer.ini
+        misfit2 = sqrt(misfit)
 
-        gpOpt = GTInit([q0, q0-misfit, q0+misfit], ai.D, ai.zbot,
+        gpOpt = GTInit([q0, q0-misfit2, q0+misfit2], ai.D, ai.zbot,
                        ai.zmax, ai.dz, ai.P, ai.H, ai.iref, Set{String}())
 
         answero1 = computeGeotherm(gpOpt, answer.D)["series"]

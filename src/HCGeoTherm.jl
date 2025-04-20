@@ -119,7 +119,6 @@ function computeGeotherm(initParameters :: GTInit,
             label = format("{:.2f}", ini.q0[i])
         end
         push!(GTs, Geotherm(_T, z, label, ini.q0[i], az))
-
         if T == undef
             T = _T
         else

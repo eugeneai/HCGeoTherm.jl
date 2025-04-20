@@ -29,7 +29,7 @@ struct GTInit  # Structure for model task representation
     H    :: Vector{Float64}         # [uW/m^3] heat production of lithospheric
     iref :: Int64                   # index to reference heat flow
                                     # for elevation computation
-    opt  :: Bool                    # Wether to apply optimization for q0
+    options :: Set{String}          # Optional variants of calculation, e.g. { "opt", "misfits" }
 end
 
 struct Geotherm
@@ -49,9 +49,9 @@ struct GTResult
 end
 
 function defaultGTInit(q0 = 34:1:40,
-                       opt::Bool = false) :: GTInit
+                       options::Set{String} = Set()) :: GTInit
     GTInit(q0, 16, [16,23,39,300], 225,
-           0.1, 0.74, [0,0.4,0.4,0.02], 3, opt)
+           0.1, 0.74, [0,0.4,0.4,0.02], 3, options)
 end
 
 function depth(p) # GPa -> km
@@ -88,13 +88,15 @@ function canonifyDF(pt::DataFrame)::DataFrame
 end
 
 function computeGeotherm(initParameters :: GTInit,
-                         df :: Union{DataFrame,Nothing}=nothing) :: GTResult
+                         df :: Union{DataFrame,Nothing}=nothing) :: Dict{String,GTResult}
     ini = initParameters
     if ! isnothing(df)
         maximumf = combine(df, [:D_km, :T_C, :T_K] .=> maximum)
     else
         maximumf = nothing
     end
+
+    answers = Dict{String,GTResult}
 
     T = undef
     alpha_ = undef
@@ -136,9 +138,11 @@ function computeGeotherm(initParameters :: GTInit,
         end
 
     end
-    answer = GTResult(ini, GTs, nothing, df, maximumf)
 
-    if ini.opt
+    answer = GTResult(ini, GTs, nothing, df, maximumf)
+    answers = Dict{String,GTResult}("series" => answer)
+
+    if "optimize" in ini.options || "misfits" in ini.options
         (xs, ifu) = chisquare(answer)
         nxsb = minimum(xs)
         nxse = maximum(xs)
@@ -154,18 +158,35 @@ function computeGeotherm(initParameters :: GTInit,
         minx = Optim.minimizer(res)
 
         q0 = convert(Float64, minx)         # [mW/m^2] surface heat flow
+        misfit = convert(Float64, miny)
 
         ai = answer.ini
 
-        gpOpt = GTInit([q0], ai.D, ai.zbot, ai.zmax, ai.dz, ai.P, ai.H, ai.iref, false)
+        gpOpt = GTInit([q0], ai.D, ai.zbot, ai.zmax, ai.dz, ai.P, ai.H, ai.iref, Set{String}())
 
-        answero = computeGeotherm(gpOpt, answer.D)
+        answero = computeGeotherm(gpOpt, answer.D)["series"]
 
-        GTResult(ini, GTs, answero.GT[1], df, maximumf)
-    else
-        answer
+        answer = GTResult(ini, GTs, answero.GT[1], df, maximumf)
+
+        a = Dict{String,GTResult}("optimize" => answer)
+        answers = merge(answers, a)
     end
 
+    if "misfits" in ini.options
+        ai = answer.ini
+        misfit2 = sqrt(misfit)
+
+        gpOpt = GTInit([q0, q0-misfit2, q0+misfit2], ai.D, ai.zbot,
+                       ai.zmax, ai.dz, ai.P, ai.H, ai.iref, Set{String}())
+
+        answero1 = computeGeotherm(gpOpt, answer.D)["series"]
+        answer = GTResult(ini, answero1.GT, answero.GT[1], df, maximumf)
+        @info "Calculated misfit lines"
+
+        a = Dict{String,GTResult}("misfits" => answer)
+        answers = merge(answers, a)
+    end
+    answers
 end
 
 function myInterpolate(xs, ys)

@@ -158,7 +158,7 @@ function computeGeotherm(initParameters :: GTInit,
         minx = Optim.minimizer(res)
 
         q0 = convert(Float64, minx)         # [mW/m^2] surface heat flow
-        misfit = convert(Float64, miny)
+        misfit = convert(Float64, miny)/2.0 # Do not use 2sigma, just one
 
         ai = answer.ini
 

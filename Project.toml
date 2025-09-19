@@ -1,7 +1,7 @@
 name = "HCGeoTherm"
 uuid = "28071b0f-1505-495f-9565-3513cfd1c620"
 authors = ["Evgeny Cherkashin, Derrick Hasterok, David Chapman"]
-version = "1.0.8"
+version = "1.0.9"
 
 [deps]
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"

@@ -43,7 +43,7 @@ export
 Structure representing initialization parameters for geotherm calculation.
 
 # Fields
-- `q0::StepRange{Int64, Int64}`: Surface heat flow range [mW/m²]
+- `q0::StepRange{Float64, Float64}`: Surface heat flow range [mW/m²]
 - `D::Float64`: Thickness of upper crust [km]
 - `zbot::Vector{Float64}`: Depth to layer bases [km]
 - `zmax::Float64`: Maximum depth of model [km]
@@ -55,7 +55,7 @@ Structure representing initialization parameters for geotherm calculation.
 - `model_name::String`: Name of the model configuration
 """
 struct GTInit
-    q0::StepRange{Int64, Int64}
+    q0::StepRange{Float64, Float64}
     D::Float64
     zbot::Vector{Float64}
     zmax::Float64
@@ -202,7 +202,7 @@ Create default GTInit structure with standard parameters.
 # Returns
 - `GTInit`: Default initialization parameters
 """
-function defaultGTInit(q0::StepRange{Int64, Int64}=34:1:40,
+function defaultGTInit(q0::StepRange{Float64, Float64}=34:1:40,
                        options::Set{String}=Set()) :: GTInit
     GTInit(
         q0,
@@ -563,7 +563,7 @@ function optimizeGeotherm(result::GTResult, model_params::ModelParameters) :: Di
     # Create optimized initialization
     ai = result.ini
     gpOpt = GTInit(
-        [round(Int, optimal_q)],
+        [optimal_q],
         ai.D, ai.zbot, ai.zmax, ai.dz,
         ai.P, ai.H, ai.iref,
         Set{String}(),
@@ -595,12 +595,12 @@ function optimizeGeotherm(result::GTResult, model_params::ModelParameters) :: Di
 
     # Calculate misfit bounds if requested
     if "misfits" in result.ini.options
-        chi_std = sqrt(min_chi)
+        chi_std = sqrt(min_chi/2)
         q_low = optimal_q - chi_std
         q_high = optimal_q + chi_std
 
         gpMisfit = GTInit(
-            [round(Int, q_low), round(Int, optimal_q), round(Int, q_high)],
+            [q_low, optimal_q, q_high],
             ai.D, ai.zbot, ai.zmax, ai.dz,
             ai.P, ai.H, ai.iref,
             Set{String}(),

@@ -30,7 +30,8 @@ T, z, k, A, q, alpha, az = empgtherms(40.0, 225.0, 0.1, 16.0, [16, 23, 39, 300],
 ```
 """
 function empgtherms(q0::Float64, maxsz::Float64, dz::Float64, D::Float64,
-                    zbot::Vector{Float64}, H::Vector{Float64})
+                    zbot::Vector{Float64}, H::Vector{Float64};
+                    model_params::Union{Nothing, Any}=nothing)
 
     # Validate inputs
     @assert length(zbot) == length(H) "zbot and H must have same length"
@@ -45,23 +46,37 @@ function empgtherms(q0::Float64, maxsz::Float64, dz::Float64, D::Float64,
     z = 0:dz:maxsz
     lenz = length(z)
 
-    # Physical constants
-    g = 10.0  # gravity [m/s²]
-    rhoc = 2850.0  # crust density [kg/m³]
-    rhom = 3340.0  # mantle density [kg/m³]
+    # Physical constants - use model_params if provided, otherwise defaults
+    if !isnothing(model_params)
+        g = model_params.gravity
+        rhoc = model_params.crust_density
+        rhom = model_params.mantle_density
+        adiabat_gradient = model_params.adiabat_gradient
+        surface_temp = model_params.surface_temperature
+        adiabat_surface_temp = model_params.adiabat_surface_temp
+    else
+        g = 10.0  # gravity [m/s²]
+        rhoc = 2850.0  # crust density [kg/m³]
+        rhom = 3340.0  # mantle density [kg/m³]
+        adiabat_gradient = 0.3  # K/km
+        surface_temp = 0.0  # °C
+        adiabat_surface_temp = 1300.0  # °C
+    end
+
     zmoho = zbot[3]  # Moho depth [km]
 
     # Initialize arrays
     lambda = zeros(lenz - 1)
     alpha = zeros(lenz)
 
-    # Compute heat production profile
-    A = compute_heat_production_profile(z, dz, D, zbot, H)
+    # Compute heat production profile - convert z to vector
+    z_vector = collect(z)
+    A = compute_heat_production_profile(z_vector, dz, D, zbot, H)
 
     # Temperature conditions
-    T0 = 0.0 + 273.15  # Surface temperature [K]
-    Ta0 = 1300.0 + 273.15  # Adiabatic temperature at surface [K]
-    dT = 0.3  # Adiabatic gradient [K/km]
+    T0 = surface_temp + 273.15  # Surface temperature [K]
+    Ta0 = adiabat_surface_temp + 273.15  # Adiabatic temperature at surface [K]
+    dT = adiabat_gradient  # Adiabatic gradient [K/km]
 
     # Adiabatic gradient
     Ta = Ta0 .+ z .* dT
@@ -69,14 +84,21 @@ function empgtherms(q0::Float64, maxsz::Float64, dz::Float64, D::Float64,
     # Compute heat flow
     q = compute_heat_flow(q0, A, dz, lenz)
 
-    # Compute temperature profile
+    # Compute temperature profile - convert all ranges to vectors
+    z_vector = collect(z)
+    Ta_vector = collect(Ta)
+    q_vector = collect(q)
+    lambda_vector = collect(lambda)
+    alpha_vector = collect(alpha)
+    A_vector = collect(A)
+
     T, lambda, alpha, adiabat_reached, adiabat_depth, last_index =
-        compute_temperature_profile(z, dz, T0, Ta, q, lambda, alpha, A, zmoho, zbot, rhoc, rhom, g)
+        compute_temperature_profile(z_vector, dz, T0, Ta_vector, q_vector, lambda_vector, alpha_vector, A_vector, zmoho, zbot, rhoc, rhom, g)
 
     # Handle adiabat if reached
     if adiabat_reached
         T, q, A, alpha, lambda = compute_adiabat_profile(
-            T, Ta, q, A, alpha, lambda, z, last_index, lenz, zmoho, zbot, rhoc, rhom, g
+            T, Ta_vector, q_vector, A_vector, alpha_vector, lambda_vector, z_vector, last_index, lenz, zmoho, zbot, rhoc, rhom, g
         )
     end
 
@@ -436,5 +458,3 @@ end
 
 # Export functions
 export empgtherms, tccomp, thermcond, kcoef, empexpansivity, acoef
-
-end # module

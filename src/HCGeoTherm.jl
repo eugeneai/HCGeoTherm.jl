@@ -4,19 +4,19 @@
 module HCGeoTherm
 
 using DataFrames
+using Dates
 using Optim
 using Format
 using Interpolations
 import Logging
-using Statistics
-using LinearAlgebra
+
 
 export
     # Structures
     GTInit, Geotherm, GTResult, ModelParameters,
 
     # Initialization functions
-    defaultGTInit, createModelParameters,
+    defaultGTInit, createGTInit, createModelParameters,
 
     # Core computation functions
     computeGeotherm, computeGeothermSeries,
@@ -43,7 +43,7 @@ export
 Structure representing initialization parameters for geotherm calculation.
 
 # Fields
-- `q0::StepRange{Float64, Float64}`: Surface heat flow range [mW/m²]
+- `q0::AbstractRange{Float64}`: Surface heat flow range [mW/m²]
 - `D::Float64`: Thickness of upper crust [km]
 - `zbot::Vector{Float64}`: Depth to layer bases [km]
 - `zmax::Float64`: Maximum depth of model [km]
@@ -55,7 +55,7 @@ Structure representing initialization parameters for geotherm calculation.
 - `model_name::String`: Name of the model configuration
 """
 struct GTInit
-    q0::StepRange{Float64, Float64}
+    q0::AbstractRange{Float64}
     D::Float64
     zbot::Vector{Float64}
     zmax::Float64
@@ -77,7 +77,24 @@ struct GTInit
         @assert 0 <= P <= 1 "P must be between 0 and 1"
         @assert iref >= 1 "iref must be at least 1"
 
-        new(q0, D, zbot, zmax, dz, P, H, iref, options, model_name)
+        # Convert q0 to AbstractRange{Float64} if it's a single value or array
+        q0_range = if q0 isa AbstractVector
+            # Convert vector to range
+            if length(q0) == 1
+                range(q0[1], length=1)
+            else
+                step = length(q0) > 1 ? q0[2] - q0[1] : 1.0
+                range(q0[1], step=step, length=length(q0))
+            end
+        elseif q0 isa Number
+            # Single value
+            range(Float64(q0), length=1)
+        else
+            # Assume it's already an AbstractRange
+            q0
+        end
+
+        new(q0_range, D, zbot, zmax, dz, P, H, iref, options, model_name)
     end
 end
 
@@ -202,7 +219,7 @@ Create default GTInit structure with standard parameters.
 # Returns
 - `GTInit`: Default initialization parameters
 """
-function defaultGTInit(q0::StepRange{Float64, Float64}=34:1:40,
+function defaultGTInit(q0::StepRange{Float64, Float64}=34.0:1.0:40.0,
                        options::Set{String}=Set()) :: GTInit
     GTInit(
         q0,
@@ -236,6 +253,45 @@ Create model parameters with optional custom values.
 - `ModelParameters`: Model parameters structure
 """
 createModelParameters(; kwargs...) = ModelParameters(; kwargs...)
+
+"""
+    createGTInit(q0, D, zbot, zmax, dz, P, H, iref=3, options=Set{String}(), model_name="default") :: GTInit
+
+Create GTInit structure with flexible q0 input.
+
+# Arguments
+- `q0`: Surface heat flow - can be:
+  - Single number (e.g., 40.5)
+  - Vector of numbers (e.g., [34.0, 35.0, 36.0])
+  - StepRange (e.g., 34.0:1.0:40.0)
+- `D`: Thickness of upper crust [km]
+- `zbot`: Depth to layer bases [km]
+- `zmax`: Maximum depth of model [km]
+- `dz`: Depth step [km]
+- `P`: Partition coefficient for upper crustal heat production
+- `H`: Heat production of lithospheric layers [μW/m³]
+- `iref`: Index to reference heat flow for elevation computation (default: 3)
+- `options`: Optional calculation variants (default: empty set)
+- `model_name`: Name of the model configuration (default: "default")
+
+# Returns
+- `GTInit`: Initialization parameters structure
+
+# Example
+```julia
+# Single heat flow value
+init1 = createGTInit(40.5, 16.0, [16.0, 23.0, 39.0, 300.0], 225.0, 0.1, 0.74, [0.0, 0.4, 0.4, 0.02])
+
+# Vector of heat flow values
+init2 = createGTInit([34.0, 35.5, 37.0, 38.5, 40.0], 16.0, [16.0, 23.0, 39.0, 300.0], 225.0, 0.1, 0.74, [0.0, 0.4, 0.4, 0.02])
+
+# StepRange
+init3 = createGTInit(34.0:0.5:40.0, 16.0, [16.0, 23.0, 39.0, 300.0], 225.0, 0.1, 0.74, [0.0, 0.4, 0.4, 0.02])
+```
+"""
+function createGTInit(q0, D, zbot, zmax, dz, P, H, iref=3, options=Set{String}(), model_name="default") :: GTInit
+    return GTInit(q0, D, zbot, zmax, dz, P, H, iref, options, model_name)
+end
 
 # ============================================================================
 # UTILITY FUNCTIONS
@@ -413,8 +469,8 @@ function computeGeothermSeries(ini::GTInit, model_params::ModelParameters) :: Tu
 
         # Compute geotherm
         T, z, _, _, _, _, az = empgtherms(
-            Float64(q0_val), ini.zmax, ini.dz, ini.D,
-            ini.zbot, H, model_params
+            q0_val, ini.zmax, ini.dz, ini.D,
+            ini.zbot, H; model_params=model_params
         )
 
         # Create label
@@ -432,7 +488,7 @@ function computeGeothermSeries(ini::GTInit, model_params::ModelParameters) :: Tu
             "calculation_time" => time() - start_time
         )
 
-        push!(GTs, Geotherm(T, z, label, Float64(q0_val), az, metadata))
+        push!(GTs, Geotherm(T, z, label, q0_val, az, metadata))
     end
 
     # Update statistics
@@ -563,7 +619,7 @@ function optimizeGeotherm(result::GTResult, model_params::ModelParameters) :: Di
     # Create optimized initialization
     ai = result.ini
     gpOpt = GTInit(
-        [optimal_q],
+        optimal_q,  # Single value will be converted to StepRange
         ai.D, ai.zbot, ai.zmax, ai.dz,
         ai.P, ai.H, ai.iref,
         Set{String}(),
@@ -600,7 +656,7 @@ function optimizeGeotherm(result::GTResult, model_params::ModelParameters) :: Di
         q_high = optimal_q + chi_std
 
         gpMisfit = GTInit(
-            [q_low, optimal_q, q_high],
+            [q_low, optimal_q, q_high],  # Vector will be converted to StepRange
             ai.D, ai.zbot, ai.zmax, ai.dz,
             ai.P, ai.H, ai.iref,
             Set{String}(),

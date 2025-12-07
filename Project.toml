@@ -5,6 +5,7 @@ version = "1.0.9"
 
 [deps]
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
+Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
 Format = "1fa38f19-a742-5d3f-a2b9-30dd87b9d5f8"
 Interpolations = "a98d9a8b-a2ab-59e6-89dd-64a1c18fca59"
 Logging = "56ddb016-857b-54e1-b83d-db4d58db5568"
@@ -12,6 +13,7 @@ Optim = "429524aa-4258-5aef-a3af-852621145aeb"
 
 [compat]
 DataFrames = "^1.6.1"
+Dates = "^1"
 Interpolations = "^0.15.0"
 Optim = "^1.7.8"
 Format = "^1.0.0"
